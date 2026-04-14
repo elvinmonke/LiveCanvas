@@ -1,0 +1,54 @@
+name: LiveCanvas
+options:
+  bundleIdPrefix: com.elvin
+  deploymentTarget:
+    macOS: "14.0"
+
+targets:
+  LiveCanvas:
+    type: application
+    platform: macOS
+    deploymentTarget:
+      macOS: "14.0"
+    sources:
+      - App/
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.elvin.livecanvas
+      MARKETING_VERSION: 1.0.0
+      CURRENT_PROJECT_VERSION: 1
+      INFOPLIST_FILE: App/Info.plist
+      SWIFT_VERSION: "5.9"
+      CODE_SIGN_IDENTITY: "-"
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+      ENABLE_HARDENED_RUNTIME: NO
+      PRODUCT_NAME: LiveCanvas
+    dependencies:
+      - target: WallpaperDaemon
+        embed: true
+        codeSign: false
+        copy:
+          destination: executables
+    frameworks:
+      - AVFoundation
+      - CoreGraphics
+      - AppKit
+      - IOKit
+
+  WallpaperDaemon:
+    type: tool
+    platform: macOS
+    sources:
+      - Daemon/
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.elvin.livecanvas.daemon
+      PRODUCT_NAME: wallpaperdaemon
+      CLANG_ENABLE_OBJC_ARC: YES
+      OTHER_LDFLAGS:
+        - "-framework AVFoundation"
+        - "-framework CoreGraphics"
+        - "-framework AppKit"
+        - "-framework IOKit"
+        - "-framework QuartzCore"
+      GCC_INPUT_FILETYPE: sourcecode.c.objc
+      MACOSX_DEPLOYMENT_TARGET: "14.0"

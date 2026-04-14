@@ -1,0 +1,456 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A6E4F737C31B71CCE775F25 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A77BED85B020C3C38F4763 /* SettingsView.swift */; };
+		320CF15899EFCD0F3133C5B2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB1CC0AF5303F10B5A402B0 /* Models.swift */; };
+		3ED0618E6E3942C839CBD74C /* WallpaperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2CC84F94CBE3DDF8411434 /* WallpaperManager.swift */; };
+		455475DAA1E61EA5827031BD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FF61EA2E6968028E8F88211 /* main.m */; };
+		646DA7179F41931CBC6CA1D3 /* LiveCanvasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E42D332FF5BF24E1ED43AFE /* LiveCanvasApp.swift */; };
+		BC57B6155FD350CFCF5CE102 /* WallpaperDaemon in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = FEBE012FFDC52211B48B4981 /* WallpaperDaemon */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CBDE7082AAB7BB06C59328D2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2791149688B4EDC3621F4C /* ContentView.swift */; };
+		F0B99759042CCAEA51B41CF1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7E29B63315695DE814C0B3A /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F504038B56243F786D295801 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5B1D9955422EFAF70428583B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 152E1056166BD5D72EC67CB9;
+			remoteInfo = WallpaperDaemon;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		58F52870E75BE3A026BA777D /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				BC57B6155FD350CFCF5CE102 /* WallpaperDaemon in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0D2CC84F94CBE3DDF8411434 /* WallpaperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperManager.swift; sourceTree = "<group>"; };
+		0FDFEC038ED5B00C0E2D5D5B /* LiveCanvas.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveCanvas.entitlements; sourceTree = "<group>"; };
+		23A77BED85B020C3C38F4763 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		242789C9F3052B8E024A891E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3A2791149688B4EDC3621F4C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		3E42D332FF5BF24E1ED43AFE /* LiveCanvasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCanvasApp.swift; sourceTree = "<group>"; };
+		4FF61EA2E6968028E8F88211 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		564E944C3AA195F9DF9080DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9DB1CC0AF5303F10B5A402B0 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		C7E29B63315695DE814C0B3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D4CB60BCF352A93C58E58BBB /* LiveCanvas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveCanvas.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FEBE012FFDC52211B48B4981 /* WallpaperDaemon */ = {isa = PBXFileReference; includeInIndex = 0; path = WallpaperDaemon; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		7D4FD1B6A484D7E105227858 = {
+			isa = PBXGroup;
+			children = (
+				CB358DBCD85D10CB22E7FC09 /* App */,
+				FD97A6DF29A8882A3D98498D /* Daemon */,
+				FDE4A9E60102491681A0815C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB358DBCD85D10CB22E7FC09 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C7E29B63315695DE814C0B3A /* Assets.xcassets */,
+				3A2791149688B4EDC3621F4C /* ContentView.swift */,
+				242789C9F3052B8E024A891E /* Info.plist */,
+				0FDFEC038ED5B00C0E2D5D5B /* LiveCanvas.entitlements */,
+				3E42D332FF5BF24E1ED43AFE /* LiveCanvasApp.swift */,
+				9DB1CC0AF5303F10B5A402B0 /* Models.swift */,
+				23A77BED85B020C3C38F4763 /* SettingsView.swift */,
+				0D2CC84F94CBE3DDF8411434 /* WallpaperManager.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		FD97A6DF29A8882A3D98498D /* Daemon */ = {
+			isa = PBXGroup;
+			children = (
+				564E944C3AA195F9DF9080DC /* Info.plist */,
+				4FF61EA2E6968028E8F88211 /* main.m */,
+			);
+			path = Daemon;
+			sourceTree = "<group>";
+		};
+		FDE4A9E60102491681A0815C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D4CB60BCF352A93C58E58BBB /* LiveCanvas.app */,
+				FEBE012FFDC52211B48B4981 /* WallpaperDaemon */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		152E1056166BD5D72EC67CB9 /* WallpaperDaemon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BD839691FB38897F393D1FC6 /* Build configuration list for PBXNativeTarget "WallpaperDaemon" */;
+			buildPhases = (
+				124F28D28CAEEE4FD0B9D173 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WallpaperDaemon;
+			packageProductDependencies = (
+			);
+			productName = WallpaperDaemon;
+			productReference = FEBE012FFDC52211B48B4981 /* WallpaperDaemon */;
+			productType = "com.apple.product-type.tool";
+		};
+		4A4987E42B6CBDF028DAB072 /* LiveCanvas */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F3E506B096EADFDA9C2077B9 /* Build configuration list for PBXNativeTarget "LiveCanvas" */;
+			buildPhases = (
+				543E291255B799AA9A4E41A2 /* Sources */,
+				3F2CC8F87F3F6469D95EA11C /* Resources */,
+				58F52870E75BE3A026BA777D /* Embed Dependencies */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD636F36B1A1AE66CBDD3DCA /* PBXTargetDependency */,
+			);
+			name = LiveCanvas;
+			packageProductDependencies = (
+			);
+			productName = LiveCanvas;
+			productReference = D4CB60BCF352A93C58E58BBB /* LiveCanvas.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5B1D9955422EFAF70428583B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 8D9684D9136D88AE03328BAE /* Build configuration list for PBXProject "LiveCanvas" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7D4FD1B6A484D7E105227858;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FDE4A9E60102491681A0815C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4A4987E42B6CBDF028DAB072 /* LiveCanvas */,
+				152E1056166BD5D72EC67CB9 /* WallpaperDaemon */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3F2CC8F87F3F6469D95EA11C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0B99759042CCAEA51B41CF1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		124F28D28CAEEE4FD0B9D173 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				455475DAA1E61EA5827031BD /* main.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		543E291255B799AA9A4E41A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CBDE7082AAB7BB06C59328D2 /* ContentView.swift in Sources */,
+				646DA7179F41931CBC6CA1D3 /* LiveCanvasApp.swift in Sources */,
+				320CF15899EFCD0F3133C5B2 /* Models.swift in Sources */,
+				1A6E4F737C31B71CCE775F25 /* SettingsView.swift in Sources */,
+				3ED0618E6E3942C839CBD74C /* WallpaperManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CD636F36B1A1AE66CBDD3DCA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 152E1056166BD5D72EC67CB9 /* WallpaperDaemon */;
+			targetProxy = F504038B56243F786D295801 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		388F4351059339D5D415AC2F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_INPUT_FILETYPE = sourcecode.c.objc;
+				INFOPLIST_FILE = Daemon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"-framework AVFoundation",
+					"-framework CoreGraphics",
+					"-framework AppKit",
+					"-framework IOKit",
+					"-framework QuartzCore",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.elvin.livecanvas.daemon;
+				PRODUCT_NAME = wallpaperdaemon;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		5C2E3B9F2F5DF1885204FB25 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		6DA26C171F232241B77DD2C9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		73147B1C1B7AE49D5002E879 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elvin.livecanvas;
+				PRODUCT_NAME = LiveCanvas;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		95BB7D5AC4E5AB4B869A4B11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elvin.livecanvas;
+				PRODUCT_NAME = LiveCanvas;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		F3694C907EB755BCBBD28022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_INPUT_FILETYPE = sourcecode.c.objc;
+				INFOPLIST_FILE = Daemon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				OTHER_LDFLAGS = (
+					"-framework AVFoundation",
+					"-framework CoreGraphics",
+					"-framework AppKit",
+					"-framework IOKit",
+					"-framework QuartzCore",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.elvin.livecanvas.daemon;
+				PRODUCT_NAME = wallpaperdaemon;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8D9684D9136D88AE03328BAE /* Build configuration list for PBXProject "LiveCanvas" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C2E3B9F2F5DF1885204FB25 /* Debug */,
+				6DA26C171F232241B77DD2C9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BD839691FB38897F393D1FC6 /* Build configuration list for PBXNativeTarget "WallpaperDaemon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				388F4351059339D5D415AC2F /* Debug */,
+				F3694C907EB755BCBBD28022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F3E506B096EADFDA9C2077B9 /* Build configuration list for PBXNativeTarget "LiveCanvas" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				73147B1C1B7AE49D5002E879 /* Debug */,
+				95BB7D5AC4E5AB4B869A4B11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5B1D9955422EFAF70428583B /* Project object */;
+}
