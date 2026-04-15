@@ -343,10 +343,3 @@ struct WallpaperRow: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    ContentView()
-        .environmentObject(WallpaperManager())
-        .frame(width: 860, height: 560)
-}

@@ -108,9 +108,9 @@ struct SettingsView: View {
         .frame(width: 440, height: 380)
         .background(LCColors.background)
         .preferredColorScheme(.dark)
-        .onChange(of: manager.launchAtLogin) { _ in manager.savePreferences() }
-        .onChange(of: manager.autoPauseFullscreen) { _ in manager.savePreferences() }
-        .onChange(of: manager.batteryMode) { _ in manager.savePreferences() }
+        .onChange(of: manager.launchAtLogin) { manager.savePreferences() }
+        .onChange(of: manager.autoPauseFullscreen) { manager.savePreferences() }
+        .onChange(of: manager.batteryMode) { manager.savePreferences() }
     }
 
     // MARK: - Components
@@ -164,9 +164,3 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Preview
-
-#Preview {
-    SettingsView()
-        .environmentObject(WallpaperManager())
-}
