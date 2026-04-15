@@ -1,17 +1,16 @@
 /**
  * LiveCanvas Wallpaper Daemon
  *
- * A headless agent that renders a looping video behind the desktop icons
- * on a specific display.  Controlled via Darwin notifications and
- * NSUserDefaults so the main app never needs a direct IPC channel.
+ * Renders a looping video as the actual macOS desktop wallpaper.
+ *
+ * Strategy: Uses a two-layer approach for true wallpaper behavior:
+ *   1. Finds the Finder's desktop window (the real wallpaper surface)
+ *      and places our video window directly above it at the same level
+ *   2. Falls back to kCGDesktopWindowLevel + kCGDesktopIconWindowLevel
+ *      positioning to sit between wallpaper and icons
  *
  * Usage:
- *   WallpaperDaemon <videoPath> <volume> <scaleMode> <displayID>
- *
- *   videoPath  — absolute path to the video file
- *   volume     — 0.0 .. 1.0
- *   scaleMode  — 0 Fit, 1 Fill, 2 Stretch, 3 Center
- *   displayID  — CGDirectDisplayID (decimal)
+ *   wallpaperdaemon <videoPath> <volume> <scaleMode> <displayID>
  */
 
 #import <Cocoa/Cocoa.h>
@@ -21,14 +20,24 @@
 #import <QuartzCore/QuartzCore.h>
 
 // ---------------------------------------------------------------------------
+#pragma mark - Private API declarations
+// ---------------------------------------------------------------------------
+
+// Private CoreGraphics API to attach window to a specific space/desktop
+typedef int CGSConnection;
+typedef int CGSWindow;
+extern CGSConnection _CGSDefaultConnection(void);
+extern CGError CGSSetWindowLevel(CGSConnection cid, CGSWindow wid, CGWindowLevel level);
+
+// ---------------------------------------------------------------------------
 #pragma mark - Scale-mode helpers
 // ---------------------------------------------------------------------------
 
 typedef NS_ENUM(NSInteger, LCScaleMode) {
-    LCScaleModeFit     = 0,  // AVLayerVideoGravityResizeAspect
-    LCScaleModeFill    = 1,  // AVLayerVideoGravityResizeAspectFill
-    LCScaleModeStretch = 2,  // AVLayerVideoGravityResize
-    LCScaleModeCenter  = 3,  // AVLayerVideoGravityResizeAspect (centered, no upscale)
+    LCScaleModeFit     = 0,
+    LCScaleModeFill    = 1,
+    LCScaleModeStretch = 2,
+    LCScaleModeCenter  = 3,
 };
 
 static NSString *videoGravityForScaleMode(LCScaleMode mode) {
@@ -77,6 +86,56 @@ static BOOL isOnBatteryPower(void) {
 }
 
 // ---------------------------------------------------------------------------
+#pragma mark - Find Finder desktop window level
+// ---------------------------------------------------------------------------
+
+/**
+ * Finds the actual Finder desktop window level by examining on-screen windows.
+ * The Finder's desktop window is the lowest-level visible window owned by "Finder".
+ * Returns the level, or kCGDesktopWindowLevel if not found.
+ */
+static CGWindowLevel findDesktopWindowLevel(void) {
+    CFArrayRef windowList = CGWindowListCopyWindowInfo(
+        kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+    if (!windowList) return kCGDesktopWindowLevel;
+
+    CGWindowLevel desktopLevel = kCGDesktopWindowLevel;
+    CGWindowLevel iconLevel = kCGDesktopWindowLevel;
+    CFIndex count = CFArrayGetCount(windowList);
+
+    for (CFIndex i = 0; i < count; i++) {
+        NSDictionary *entry = (__bridge NSDictionary *)CFArrayGetValueAtIndex(windowList, i);
+        NSString *ownerName = entry[(__bridge NSString *)kCGWindowOwnerName];
+        NSNumber *layer = entry[(__bridge NSString *)kCGWindowLayer];
+
+        if (!ownerName || !layer) continue;
+
+        NSInteger level = [layer integerValue];
+
+        if ([ownerName isEqualToString:@"Finder"]) {
+            // Finder owns the desktop wallpaper window and the icon window
+            // Desktop wallpaper is at kCGDesktopWindowLevel (typically -2147483623)
+            // Desktop icons are at kCGDesktopIconWindowLevel (typically -2147483603)
+            if (level <= kCGDesktopWindowLevel) {
+                desktopLevel = (CGWindowLevel)level;
+            }
+            if (level > desktopLevel && level <= kCGDesktopIconWindowLevel) {
+                iconLevel = (CGWindowLevel)level;
+            }
+        }
+    }
+
+    CFRelease(windowList);
+
+    // We want to be ABOVE the wallpaper but BELOW the icons.
+    // If we found both levels, place ourselves between them.
+    if (iconLevel > desktopLevel) {
+        return desktopLevel + 1;
+    }
+    return desktopLevel;
+}
+
+// ---------------------------------------------------------------------------
 #pragma mark - Fullscreen-app detection
 // ---------------------------------------------------------------------------
 
@@ -94,7 +153,6 @@ static BOOL isFullscreenAppActive(void) {
         NSDictionary *entry = (__bridge NSDictionary *)CFArrayGetValueAtIndex(windowList, i);
         NSNumber *layer = entry[(__bridge NSString *)kCGWindowLayer];
 
-        // Normal window layer is 0.
         if (layer && [layer integerValue] == 0) {
             CGRect bounds;
             NSDictionary *boundsDict = entry[(__bridge NSString *)kCGWindowBounds];
@@ -159,8 +217,6 @@ static BOOL isFullscreenAppActive(void) {
     return self;
 }
 
-// ---- public ---------------------------------------------------------------
-
 - (void)start {
     [self createWindow];
     [self createPlayer];
@@ -183,7 +239,6 @@ static BOOL isFullscreenAppActive(void) {
         }
     }
     if (NSIsEmptyRect(displayFrame)) {
-        // Fallback: use main screen.
         displayFrame = [[NSScreen mainScreen] frame];
     }
 
@@ -193,17 +248,52 @@ static BOOL isFullscreenAppActive(void) {
                                             backing:NSBackingStoreBuffered
                                               defer:NO];
 
-    [_window setLevel:(kCGDesktopWindowLevel - 1)];
-    [_window setOpaque:NO];
-    [_window setBackgroundColor:[NSColor clearColor]];
+    // Find the exact level between Finder's wallpaper and desktop icons
+    CGWindowLevel targetLevel = findDesktopWindowLevel();
+    [_window setLevel:targetLevel];
+
+    // Also try using the private CGS API to set the precise level
+    CGSConnection cid = _CGSDefaultConnection();
+    if (cid) {
+        CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], targetLevel);
+    }
+
+    [_window setOpaque:YES];
+    [_window setBackgroundColor:[NSColor blackColor]];
     [_window setHasShadow:NO];
     [_window setIgnoresMouseEvents:YES];
+
+    // Critical: these behaviors make the window act like part of the desktop
     [_window setCollectionBehavior:(NSWindowCollectionBehaviorCanJoinAllSpaces |
                                     NSWindowCollectionBehaviorStationary      |
                                     NSWindowCollectionBehaviorIgnoresCycle    |
-                                    NSWindowCollectionBehaviorFullScreenAuxiliary)];
+                                    NSWindowCollectionBehaviorFullScreenAuxiliary |
+                                    NSWindowCollectionBehaviorTransient)];
+
+    // Make the window the full size of the display
     [_window setFrame:displayFrame display:YES];
+
+    // Order it to the front at our level
     [_window orderFront:nil];
+
+    // Observe display configuration changes
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(displayConfigChanged:)
+                                                 name:NSApplicationDidChangeScreenParametersNotification
+                                               object:nil];
+}
+
+- (void)displayConfigChanged:(NSNotification *)note {
+    // Re-fit window to display on configuration changes
+    for (NSScreen *screen in [NSScreen screens]) {
+        NSDictionary *desc = [screen deviceDescription];
+        NSNumber *screenNumber = desc[@"NSScreenNumber"];
+        if (screenNumber && (CGDirectDisplayID)[screenNumber unsignedIntValue] == _displayID) {
+            [_window setFrame:[screen frame] display:YES];
+            _playerLayer.frame = _window.contentView.bounds;
+            break;
+        }
+    }
 }
 
 // ---- player ---------------------------------------------------------------
@@ -216,7 +306,6 @@ static BOOL isFullscreenAppActive(void) {
     _player.volume = _volume;
     _player.actionAtItemEnd = AVPlayerActionAtItemEndAdvance;
 
-    // AVPlayerLooper keeps re-enqueuing the template item.
     _looper = [AVPlayerLooper playerLooperWithPlayer:_player
                                         templateItem:templateItem];
 
@@ -226,6 +315,7 @@ static BOOL isFullscreenAppActive(void) {
     _playerLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
 
     [_window.contentView setWantsLayer:YES];
+    _window.contentView.layer.backgroundColor = [[NSColor blackColor] CGColor];
     [_window.contentView.layer addSublayer:_playerLayer];
 
     [_player play];
@@ -236,34 +326,24 @@ static BOOL isFullscreenAppActive(void) {
 - (void)registerNotifications {
     CFNotificationCenterRef center = CFNotificationCenterGetDarwinNotifyCenter();
 
-    // Volume changed
     CFNotificationCenterAddObserver(
-        center,
-        (__bridge const void *)(self),
+        center, (__bridge const void *)(self),
         volumeChangedCallback,
         CFSTR("com.livecanvas.volumeChanged"),
-        NULL,
-        CFNotificationSuspensionBehaviorDeliverImmediately);
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-    // Scale-mode changed
     CFNotificationCenterAddObserver(
-        center,
-        (__bridge const void *)(self),
+        center, (__bridge const void *)(self),
         scaleModeChangedCallback,
         CFSTR("com.livecanvas.scaleModeChanged"),
-        NULL,
-        CFNotificationSuspensionBehaviorDeliverImmediately);
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-    // Terminate
     CFNotificationCenterAddObserver(
-        center,
-        (__bridge const void *)(self),
+        center, (__bridge const void *)(self),
         terminateCallback,
         CFSTR("com.livecanvas.terminate"),
-        NULL,
-        CFNotificationSuspensionBehaviorDeliverImmediately);
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-    // Display sleep / wake via NSWorkspace
     [[[NSWorkspace sharedWorkspace] notificationCenter]
         addObserver:self
            selector:@selector(handleScreenSleep:)
@@ -276,7 +356,6 @@ static BOOL isFullscreenAppActive(void) {
                name:NSWorkspaceScreensDidWakeNotification
              object:nil];
 
-    // Power source change (battery <-> AC)
     CFRunLoopSourceRef powerSource = IOPSNotificationCreateRunLoopSource(
         powerSourceCallback, (__bridge void *)(self));
     if (powerSource) {
@@ -284,8 +363,6 @@ static BOOL isFullscreenAppActive(void) {
         CFRelease(powerSource);
     }
 }
-
-// ---- notification callbacks (C functions) ---------------------------------
 
 static void volumeChangedCallback(CFNotificationCenterRef center,
                                   void *observer,
@@ -327,8 +404,6 @@ static void powerSourceCallback(void *context) {
     [daemon applyPowerPolicy];
 }
 
-// ---- screen sleep / wake --------------------------------------------------
-
 - (void)handleScreenSleep:(NSNotification *)note {
     _paused = YES;
     [_player pause];
@@ -340,14 +415,15 @@ static void powerSourceCallback(void *context) {
     [self applyPowerPolicy];
 }
 
-// ---- watchdog: pause when fullscreen app is active ------------------------
+// ---- watchdog: pause when fullscreen app is active, re-level if needed -----
 
 - (void)startWatchdog {
-    _watchdogTimer = [NSTimer scheduledTimerWithTimeInterval:3.0
+    _watchdogTimer = [NSTimer scheduledTimerWithTimeInterval:2.0
                                                      target:self
                                                    selector:@selector(watchdogTick:)
                                                    userInfo:nil
                                                     repeats:YES];
+    [[NSRunLoop mainRunLoop] addTimer:_watchdogTimer forMode:NSRunLoopCommonModes];
 }
 
 - (void)watchdogTick:(NSTimer *)timer {
@@ -362,6 +438,18 @@ static void powerSourceCallback(void *context) {
             [_player play];
             [self applyPowerPolicy];
         }
+
+        // Periodically re-assert our window level in case Finder restarted
+        // or the desktop was recomposed
+        CGWindowLevel targetLevel = findDesktopWindowLevel();
+        if (_window.level != targetLevel) {
+            [_window setLevel:targetLevel];
+            CGSConnection cid = _CGSDefaultConnection();
+            if (cid) {
+                CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], targetLevel);
+            }
+            [_window orderFront:nil];
+        }
     }
 }
 
@@ -369,7 +457,6 @@ static void powerSourceCallback(void *context) {
 
 - (void)applyPowerPolicy {
     if (isOnBatteryPower()) {
-        // Reduce playback rate to save energy.
         _player.rate = 0.5;
     } else {
         _player.rate = 1.0;
@@ -387,6 +474,7 @@ static void powerSourceCallback(void *context) {
         (__bridge const void *)(self));
 
     [[[NSWorkspace sharedWorkspace] notificationCenter] removeObserver:self];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [_player pause];
     _player = nil;
@@ -411,7 +499,7 @@ int main(int argc, const char *argv[]) {
     @autoreleasepool {
         if (argc < 5) {
             fprintf(stderr,
-                "Usage: WallpaperDaemon <videoPath> <volume> <scaleMode> <displayID>\n"
+                "Usage: wallpaperdaemon <videoPath> <volume> <scaleMode> <displayID>\n"
                 "  videoPath  — absolute path to video file\n"
                 "  volume     — 0.0 .. 1.0\n"
                 "  scaleMode  — 0 Fit | 1 Fill | 2 Stretch | 3 Center\n"
@@ -424,17 +512,14 @@ int main(int argc, const char *argv[]) {
         LCScaleMode mode    = (LCScaleMode)atoi(argv[3]);
         CGDirectDisplayID displayID = (CGDirectDisplayID)atoi(argv[4]);
 
-        // Clamp volume.
         if (volume < 0.0f) volume = 0.0f;
         if (volume > 1.0f) volume = 1.0f;
 
-        // Validate video file exists.
         if (![[NSFileManager defaultManager] fileExistsAtPath:videoPath]) {
             fprintf(stderr, "Error: video file not found at %s\n", [videoPath UTF8String]);
             return 1;
         }
 
-        // Set up the application (headless, no dock icon — controlled by Info.plist).
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
 
@@ -443,8 +528,6 @@ int main(int argc, const char *argv[]) {
                                                                    scaleMode:mode
                                                                    displayID:displayID];
         [daemon start];
-
-        // Enter the run loop.
         [NSApp run];
     }
     return 0;
