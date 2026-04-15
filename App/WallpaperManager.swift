@@ -26,6 +26,7 @@ class WallpaperManager: ObservableObject {
 
     private var daemonStates: [CGDirectDisplayID: DaemonState] = [:]
     private let defaults = UserDefaults.standard
+    private let sharedDefaults = UserDefaults(suiteName: "com.elvin.livecanvas")
     private let supportedExtensions: Set<String> = ["mp4", "mov", "m4v"]
     private let thumbnailCache = NSCache<NSURL, NSImage>()
 
@@ -147,6 +148,15 @@ class WallpaperManager: ObservableObject {
             )
             isPlaying = true
             statusText = "Playing on \(display.name)"
+
+            // Write active video path for the screen saver to read
+            sharedDefaults?.set(wallpaper.url.path, forKey: "lc_activeVideoPath")
+            defaults.set(wallpaper.url.path, forKey: "lc_activeVideoPath")
+            sharedDefaults?.synchronize()
+
+            // Install LiveCanvas as the active screen saver for lock screen
+            installScreenSaver()
+
             savePreferences()
         } else {
             statusText = "Failed to start daemon"
@@ -185,6 +195,31 @@ class WallpaperManager: ObservableObject {
         } else {
             setWallpaper()
         }
+    }
+
+    // MARK: - Screen Saver Installation
+
+    private func installScreenSaver() {
+        // Copy the .saver bundle from the app bundle to ~/Library/Screen Savers/
+        let saverSource = Bundle.main.bundlePath + "/Contents/Resources/LiveCanvas.saver"
+        let saverDest = NSHomeDirectory() + "/Library/Screen Savers/LiveCanvas.saver"
+
+        let fm = FileManager.default
+        if fm.fileExists(atPath: saverSource) {
+            try? fm.removeItem(atPath: saverDest)
+            try? fm.copyItem(atPath: saverSource, toPath: saverDest)
+        }
+
+        // Set LiveCanvas as the active screen saver via defaults
+        let ssDefaults = UserDefaults(suiteName: "com.apple.screensaver")
+        ssDefaults?.set("LiveCanvas", forKey: "moduleDict.moduleName")
+        ssDefaults?.set(saverDest, forKey: "moduleDict.path")
+        ssDefaults?.set(0, forKey: "moduleDict.type")  // 0 = .saver bundle
+        ssDefaults?.synchronize()
+
+        // Also write directly to com.apple.screensaver
+        defaults.set(["moduleName": "LiveCanvas", "path": saverDest, "type": 0],
+                     forKey: "moduleDict")
     }
 
     // MARK: - Darwin Notifications
