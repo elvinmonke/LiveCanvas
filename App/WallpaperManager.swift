@@ -123,13 +123,13 @@ class WallpaperManager: ObservableObject {
         stopWallpaper(for: display.id)
 
         // Spawn new daemon process
-        let daemonPath = Bundle.main.bundlePath + "/Contents/MacOS/LiveCanvasDaemon"
+        let daemonPath = Bundle.main.bundlePath + "/Contents/MacOS/wallpaperdaemon"
         let args = [
             daemonPath,
-            "--video", wallpaper.url.path,
-            "--display", String(display.id),
-            "--scale", String(scaleMode.rawValue),
-            "--volume", String(volume)
+            wallpaper.url.path,
+            String(volume),
+            String(scaleMode.rawValue),
+            String(display.id)
         ]
 
         var pid: pid_t = 0
