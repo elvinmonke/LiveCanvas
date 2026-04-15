@@ -187,6 +187,8 @@ static BOOL isFullscreenAppActive(void) {
 @property (nonatomic, assign) LCScaleMode      scaleMode;
 @property (nonatomic, assign) CGDirectDisplayID displayID;
 @property (nonatomic, assign) BOOL             paused;
+@property (nonatomic, assign) BOOL             screenLocked;
+@property (nonatomic, assign) CGWindowLevel    desktopLevel;
 
 - (instancetype)initWithVideoPath:(NSString *)path
                            volume:(float)volume
@@ -212,7 +214,9 @@ static BOOL isFullscreenAppActive(void) {
         _volume     = vol;
         _scaleMode  = mode;
         _displayID  = dID;
-        _paused     = NO;
+        _paused       = NO;
+        _screenLocked = NO;
+        _desktopLevel = kCGDesktopWindowLevel;
     }
     return self;
 }
@@ -249,13 +253,13 @@ static BOOL isFullscreenAppActive(void) {
                                               defer:NO];
 
     // Find the exact level between Finder's wallpaper and desktop icons
-    CGWindowLevel targetLevel = findDesktopWindowLevel();
-    [_window setLevel:targetLevel];
+    _desktopLevel = findDesktopWindowLevel();
+    [_window setLevel:_desktopLevel];
 
     // Also try using the private CGS API to set the precise level
     CGSConnection cid = _CGSDefaultConnection();
     if (cid) {
-        CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], targetLevel);
+        CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], _desktopLevel);
     }
 
     [_window setOpaque:YES];
@@ -356,6 +360,19 @@ static BOOL isFullscreenAppActive(void) {
                name:NSWorkspaceScreensDidWakeNotification
              object:nil];
 
+    // Screen lock / unlock (Darwin notifications from loginwindow)
+    CFNotificationCenterAddObserver(
+        center, (__bridge const void *)(self),
+        screenLockedCallback,
+        CFSTR("com.apple.screenIsLocked"),
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
+    CFNotificationCenterAddObserver(
+        center, (__bridge const void *)(self),
+        screenUnlockedCallback,
+        CFSTR("com.apple.screenIsUnlocked"),
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
     CFRunLoopSourceRef powerSource = IOPSNotificationCreateRunLoopSource(
         powerSourceCallback, (__bridge void *)(self));
     if (powerSource) {
@@ -399,10 +416,67 @@ static void terminateCallback(CFNotificationCenterRef center,
     [daemon shutdown];
 }
 
+static void screenLockedCallback(CFNotificationCenterRef center,
+                                 void *observer,
+                                 CFNotificationName name,
+                                 const void *object,
+                                 CFDictionaryRef userInfo) {
+    WallpaperDaemon *daemon = (__bridge WallpaperDaemon *)observer;
+    [daemon handleScreenLocked];
+}
+
+static void screenUnlockedCallback(CFNotificationCenterRef center,
+                                   void *observer,
+                                   CFNotificationName name,
+                                   const void *object,
+                                   CFDictionaryRef userInfo) {
+    WallpaperDaemon *daemon = (__bridge WallpaperDaemon *)observer;
+    [daemon handleScreenUnlocked];
+}
+
 static void powerSourceCallback(void *context) {
     WallpaperDaemon *daemon = (__bridge WallpaperDaemon *)context;
     [daemon applyPowerPolicy];
 }
+
+// ---- screen lock / unlock -------------------------------------------------
+
+- (void)setWindowLevel:(CGWindowLevel)level {
+    [_window setLevel:level];
+    CGSConnection cid = _CGSDefaultConnection();
+    if (cid) {
+        CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], level);
+    }
+    [_window orderFront:nil];
+}
+
+- (void)handleScreenLocked {
+    _screenLocked = YES;
+
+    // Raise the window above the lock screen wallpaper.
+    // The lock screen wallpaper sits at kCGDesktopWindowLevel.
+    // The login UI (password field) sits at kCGScreenSaverWindowLevel or above.
+    // We place ourselves between them so the video plays behind the login UI.
+    // kCGScreenSaverWindowLevel - 1 puts us just below the screensaver/login overlay.
+    CGWindowLevel lockLevel = kCGScreenSaverWindowLevel - 1;
+    [self setWindowLevel:lockLevel];
+
+    // Make sure playback continues
+    if (_player.rate == 0.0 && !_paused) {
+        [_player play];
+        [self applyPowerPolicy];
+    }
+}
+
+- (void)handleScreenUnlocked {
+    _screenLocked = NO;
+
+    // Drop back to the normal desktop level
+    _desktopLevel = findDesktopWindowLevel();
+    [self setWindowLevel:_desktopLevel];
+}
+
+// ---- screen sleep / wake (display off, not lock) -------------------------
 
 - (void)handleScreenSleep:(NSNotification *)note {
     _paused = YES;
@@ -413,6 +487,14 @@ static void powerSourceCallback(void *context) {
     _paused = NO;
     [_player play];
     [self applyPowerPolicy];
+
+    // Re-assert the correct level after wake
+    if (_screenLocked) {
+        [self setWindowLevel:(kCGScreenSaverWindowLevel - 1)];
+    } else {
+        _desktopLevel = findDesktopWindowLevel();
+        [self setWindowLevel:_desktopLevel];
+    }
 }
 
 // ---- watchdog: pause when fullscreen app is active, re-level if needed -----
@@ -440,15 +522,12 @@ static void powerSourceCallback(void *context) {
         }
 
         // Periodically re-assert our window level in case Finder restarted
-        // or the desktop was recomposed
-        CGWindowLevel targetLevel = findDesktopWindowLevel();
-        if (_window.level != targetLevel) {
-            [_window setLevel:targetLevel];
-            CGSConnection cid = _CGSDefaultConnection();
-            if (cid) {
-                CGSSetWindowLevel(cid, (CGSWindow)[_window windowNumber], targetLevel);
+        // or the desktop was recomposed (only when not locked)
+        if (!_screenLocked) {
+            CGWindowLevel targetLevel = findDesktopWindowLevel();
+            if (_window.level != targetLevel) {
+                [self setWindowLevel:targetLevel];
             }
-            [_window orderFront:nil];
         }
     }
 }
