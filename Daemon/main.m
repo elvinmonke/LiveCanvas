@@ -117,6 +117,15 @@ static CGWindowLevel findDesktopWindowLevel(void) {
 // ---------------------------------------------------------------------------
 
 static BOOL isFullscreenAppActive(void) {
+    // A true fullscreen app lives on its own Space and its frontmost window
+    // covers the screen including the menu bar region. Matching on
+    // CGRectEqualToRect(bounds, screenFrame) produced false positives for
+    // any borderless window that happened to match the display size
+    // (browser zoom, some overlays, Spotlight) — those would pause the
+    // wallpaper unexpectedly.
+    NSRunningApplication *front = [[NSWorkspace sharedWorkspace] frontmostApplication];
+    if (!front) return NO;
+
     CFArrayRef windowList = CGWindowListCopyWindowInfo(
         kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
         kCGNullWindowID);
@@ -129,13 +138,20 @@ static BOOL isFullscreenAppActive(void) {
     for (CFIndex i = 0; i < count; i++) {
         NSDictionary *entry = (__bridge NSDictionary *)CFArrayGetValueAtIndex(windowList, i);
         NSNumber *layer = entry[(__bridge NSString *)kCGWindowLayer];
-        if (layer && [layer integerValue] == 0) {
-            CGRect bounds;
-            NSDictionary *boundsDict = entry[(__bridge NSString *)kCGWindowBounds];
-            if (boundsDict) {
-                CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)boundsDict, &bounds);
-                if (CGRectEqualToRect(bounds, screenFrame)) { found = YES; break; }
-            }
+        NSNumber *ownerPID = entry[(__bridge NSString *)kCGWindowOwnerPID];
+        if (!layer || [layer integerValue] != 0) continue;
+        if (!ownerPID || [ownerPID intValue] != front.processIdentifier) continue;
+
+        CGRect bounds;
+        NSDictionary *boundsDict = entry[(__bridge NSString *)kCGWindowBounds];
+        if (!boundsDict) continue;
+        CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)boundsDict, &bounds);
+
+        if (bounds.size.width >= screenFrame.size.width &&
+            bounds.size.height >= screenFrame.size.height &&
+            bounds.origin.y <= screenFrame.origin.y) {
+            found = YES;
+            break;
         }
     }
     CFRelease(windowList);
@@ -385,6 +401,15 @@ static BOOL isFullscreenAppActive(void) {
                                             properties:@{NSImageCompressionFactor: @(0.92)}];
     [jpegData writeToFile:_frameTempPath atomically:YES];
     CVPixelBufferRelease(pixelBuffer);
+
+    // Detach the video output now that we have the static frame.
+    // Leaving it attached forces AVFoundation to decode into 32BGRA pixel
+    // buffers for every frame, which tanks performance on HQ video.
+    AVPlayerItem *currentItem = _player.currentItem;
+    if (currentItem && [currentItem.outputs containsObject:_videoOutput]) {
+        [currentItem removeOutput:_videoOutput];
+    }
+    _videoOutput = nil;
 
     // Set as the actual system wallpaper for ALL screens
     NSURL *frameURL = [NSURL fileURLWithPath:_frameTempPath];
