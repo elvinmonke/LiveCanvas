@@ -5,8 +5,8 @@
  * Uses a borderless window with AVPlayerLayer placed between
  * Finder's wallpaper surface and desktop icons via CGS private API.
  *
- * Lock screen animation is handled separately by the LiveCanvas
- * screen saver (.saver bundle).
+ * Also sets the actual system wallpaper to a frame from the video
+ * so Mission Control and space transitions look correct.
  *
  * Usage:
  *   wallpaperdaemon <videoPath> <volume> <scaleMode> <displayID>
@@ -152,15 +152,19 @@ static BOOL isFullscreenAppActive(void) {
 @property (nonatomic, strong) AVQueuePlayer         *player;
 @property (nonatomic, strong) AVPlayerLooper        *looper;
 @property (nonatomic, strong) AVPlayerLayer         *playerLayer;
+@property (nonatomic, strong) AVPlayerItemVideoOutput *videoOutput;
 @property (nonatomic, strong) NSTimer               *watchdogTimer;
 
 @property (nonatomic, copy)   NSString              *videoPath;
+@property (nonatomic, copy)   NSString              *frameTempPath;
 @property (nonatomic, assign) float                  volume;
 @property (nonatomic, assign) LCScaleMode            scaleMode;
 @property (nonatomic, assign) CGDirectDisplayID      displayID;
 @property (nonatomic, assign) BOOL                   paused;
 @property (nonatomic, assign) BOOL                   screenLocked;
 @property (nonatomic, assign) CGWindowLevel          desktopLevel;
+@property (nonatomic, copy)   NSString              *originalWallpaperPath;
+@property (nonatomic, assign) BOOL                   hasSetStaticWallpaper;
 
 - (instancetype)initWithVideoPath:(NSString *)path
                            volume:(float)volume
@@ -185,17 +189,31 @@ static BOOL isFullscreenAppActive(void) {
         _paused         = NO;
         _screenLocked   = NO;
         _desktopLevel   = kCGDesktopWindowLevel;
+        _hasSetStaticWallpaper = NO;
 
-        // Write the active video path so the screen saver can read it
-        NSUserDefaults *shared = [[NSUserDefaults alloc]
-            initWithSuiteName:@"com.elvin.livecanvas"];
-        [shared setObject:path forKey:@"lc_activeVideoPath"];
-        [shared synchronize];
+        // Temp file for the static wallpaper frame
+        NSString *tmpDir = NSTemporaryDirectory();
+        _frameTempPath = [tmpDir stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"livecanvas_frame_%u.jpg", dID]];
 
-        [[NSUserDefaults standardUserDefaults] setObject:path forKey:@"lc_activeVideoPath"];
-        [[NSUserDefaults standardUserDefaults] synchronize];
+        // Save original wallpaper so we can restore on exit
+        [self saveOriginalWallpaper];
     }
     return self;
+}
+
+- (void)saveOriginalWallpaper {
+    for (NSScreen *screen in [NSScreen screens]) {
+        NSDictionary *desc = [screen deviceDescription];
+        NSNumber *screenNumber = desc[@"NSScreenNumber"];
+        if (screenNumber && (CGDirectDisplayID)[screenNumber unsignedIntValue] == _displayID) {
+            NSURL *url = [[NSWorkspace sharedWorkspace] desktopImageURLForScreen:screen];
+            if (url) {
+                _originalWallpaperPath = [url path];
+            }
+            break;
+        }
+    }
 }
 
 - (void)start {
@@ -255,6 +273,11 @@ static BOOL isFullscreenAppActive(void) {
                                              selector:@selector(displayConfigChanged:)
                                                  name:NSApplicationDidChangeScreenParametersNotification
                                                object:nil];
+
+    // Observe active space changes to re-assert window level
+    [[[NSWorkspace sharedWorkspace] notificationCenter]
+        addObserver:self selector:@selector(spaceChanged:)
+               name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];
 }
 
 - (void)displayConfigChanged:(NSNotification *)note {
@@ -269,11 +292,29 @@ static BOOL isFullscreenAppActive(void) {
     }
 }
 
+- (void)spaceChanged:(NSNotification *)note {
+    // Re-assert window level after space switch
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        if (!self.paused && !self.screenLocked) {
+            self.desktopLevel = findDesktopWindowLevel();
+            [self setWindowLevel:self.desktopLevel];
+        }
+    });
+}
+
 // ---- player ---------------------------------------------------------------
 
 - (void)createPlayer {
     NSURL *fileURL = [NSURL fileURLWithPath:_videoPath];
     AVPlayerItem *templateItem = [AVPlayerItem playerItemWithURL:fileURL];
+
+    // Add video output for extracting a static frame
+    NSDictionary *attrs = @{
+        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA)
+    };
+    _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:attrs];
+    [templateItem addOutput:_videoOutput];
 
     _player = [AVQueuePlayer queuePlayerWithItems:@[templateItem]];
     _player.volume = _volume;
@@ -292,6 +333,59 @@ static BOOL isFullscreenAppActive(void) {
     [_window.contentView.layer addSublayer:_playerLayer];
 
     [_player play];
+
+    // Extract a frame after a short delay and set it as the actual system wallpaper.
+    // This ensures Mission Control / space transitions show a matching image
+    // instead of the user's old wallpaper.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [self captureAndSetStaticWallpaper];
+    });
+}
+
+// ---- static wallpaper (for Mission Control / space transitions) -----------
+
+- (void)captureAndSetStaticWallpaper {
+    if (!_videoOutput) return;
+
+    CMTime currentTime = [_player currentTime];
+    if (![_videoOutput hasNewPixelBufferForItemTime:currentTime]) {
+        // Retry shortly
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            [self captureAndSetStaticWallpaper];
+        });
+        return;
+    }
+
+    CVPixelBufferRef pixelBuffer = [_videoOutput copyPixelBufferForItemTime:currentTime
+                                                        itemTimeForDisplay:NULL];
+    if (!pixelBuffer) return;
+
+    // Convert to JPEG and write to temp file
+    CIImage *ciImage = [CIImage imageWithCVPixelBuffer:pixelBuffer];
+    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithCIImage:ciImage];
+    NSData *jpegData = [bitmap representationUsingType:NSBitmapImageFileTypeJPEG
+                                            properties:@{NSImageCompressionFactor: @(0.92)}];
+    [jpegData writeToFile:_frameTempPath atomically:YES];
+    CVPixelBufferRelease(pixelBuffer);
+
+    // Set as the actual system wallpaper for ALL screens
+    NSURL *frameURL = [NSURL fileURLWithPath:_frameTempPath];
+    NSDictionary *options = @{
+        NSWorkspaceDesktopImageScalingKey: @(NSImageScaleProportionallyUpOrDown),
+        NSWorkspaceDesktopImageAllowClippingKey: @(YES)
+    };
+
+    for (NSScreen *screen in [NSScreen screens]) {
+        NSError *error = nil;
+        [[NSWorkspace sharedWorkspace] setDesktopImageURL:frameURL
+                                                forScreen:screen
+                                                  options:options
+                                                    error:&error];
+    }
+
+    _hasSetStaticWallpaper = YES;
 }
 
 // ---- Darwin notifications -------------------------------------------------
@@ -383,7 +477,6 @@ static void powerSourceCallback(void *ctx) {
 
 - (void)handleScreenLocked {
     _screenLocked = YES;
-    // Pause the desktop window player — the screen saver handles lock screen
     [_player pause];
 }
 
@@ -392,7 +485,6 @@ static void powerSourceCallback(void *ctx) {
     [_player play];
     [self applyPowerPolicy];
 
-    // Re-assert the desktop window level
     _desktopLevel = findDesktopWindowLevel();
     [self setWindowLevel:_desktopLevel];
 }
@@ -452,6 +544,19 @@ static void powerSourceCallback(void *ctx) {
 
 - (void)shutdown {
     [_watchdogTimer invalidate]; _watchdogTimer = nil;
+
+    // Restore original wallpaper on all screens
+    if (_originalWallpaperPath) {
+        NSURL *origURL = [NSURL fileURLWithPath:_originalWallpaperPath];
+        for (NSScreen *screen in [NSScreen screens]) {
+            [[NSWorkspace sharedWorkspace] setDesktopImageURL:origURL
+                                                   forScreen:screen
+                                                     options:@{} error:nil];
+        }
+    }
+
+    // Clean up temp frame file
+    [[NSFileManager defaultManager] removeItemAtPath:_frameTempPath error:nil];
 
     CFNotificationCenterRemoveEveryObserver(
         CFNotificationCenterGetDarwinNotifyCenter(),
