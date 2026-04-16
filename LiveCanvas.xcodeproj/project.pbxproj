@@ -11,6 +11,7 @@
 		320CF15899EFCD0F3133C5B2 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB1CC0AF5303F10B5A402B0 /* Models.swift */; };
 		3ED0618E6E3942C839CBD74C /* WallpaperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2CC84F94CBE3DDF8411434 /* WallpaperManager.swift */; };
 		455475DAA1E61EA5827031BD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FF61EA2E6968028E8F88211 /* main.m */; };
+		4FE280381CF5C6BF48C45ACF /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 882E10AE23200C6E761D0226 /* AppIcon.icns */; };
 		646DA7179F41931CBC6CA1D3 /* LiveCanvasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E42D332FF5BF24E1ED43AFE /* LiveCanvasApp.swift */; };
 		BC57B6155FD350CFCF5CE102 /* WallpaperDaemon in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = FEBE012FFDC52211B48B4981 /* WallpaperDaemon */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CBDE7082AAB7BB06C59328D2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2791149688B4EDC3621F4C /* ContentView.swift */; };
@@ -50,6 +51,7 @@
 		3E42D332FF5BF24E1ED43AFE /* LiveCanvasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCanvasApp.swift; sourceTree = "<group>"; };
 		4FF61EA2E6968028E8F88211 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		564E944C3AA195F9DF9080DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		882E10AE23200C6E761D0226 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		9DB1CC0AF5303F10B5A402B0 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C7E29B63315695DE814C0B3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D4CB60BCF352A93C58E58BBB /* LiveCanvas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveCanvas.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -66,6 +68,14 @@
 			);
 			sourceTree = "<group>";
 		};
+		B63D388585C62F11FB50DCC2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				882E10AE23200C6E761D0226 /* AppIcon.icns */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		CB358DBCD85D10CB22E7FC09 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -77,6 +87,7 @@
 				9DB1CC0AF5303F10B5A402B0 /* Models.swift */,
 				23A77BED85B020C3C38F4763 /* SettingsView.swift */,
 				0D2CC84F94CBE3DDF8411434 /* WallpaperManager.swift */,
+				B63D388585C62F11FB50DCC2 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -175,6 +186,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FE280381CF5C6BF48C45ACF /* AppIcon.icns in Resources */,
 				F0B99759042CCAEA51B41CF1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

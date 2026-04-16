@@ -229,6 +229,9 @@ class WallpaperManager: ObservableObject {
         defaults.set(autoPauseFullscreen, forKey: "lc_autoPauseFullscreen")
         defaults.set(batteryMode, forKey: "lc_batteryMode")
 
+        // Notify daemon of settings change
+        postNotification(name: "com.livecanvas.settingsChanged")
+
         // Save per-display assignments
         var assignments: [String: String] = [:]
         for (displayID, state) in daemonStates {

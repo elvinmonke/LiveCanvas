@@ -161,10 +161,16 @@ static BOOL isFullscreenAppActive(void) {
 @property (nonatomic, assign) LCScaleMode            scaleMode;
 @property (nonatomic, assign) CGDirectDisplayID      displayID;
 @property (nonatomic, assign) BOOL                   paused;
+@property (nonatomic, assign) BOOL                   pausedForBattery;
+@property (nonatomic, assign) BOOL                   pausedForFullscreen;
 @property (nonatomic, assign) BOOL                   screenLocked;
 @property (nonatomic, assign) CGWindowLevel          desktopLevel;
 @property (nonatomic, copy)   NSString              *originalWallpaperPath;
 @property (nonatomic, assign) BOOL                   hasSetStaticWallpaper;
+@property (nonatomic, assign) BOOL                   batteryMode;
+@property (nonatomic, assign) BOOL                   autoPauseFullscreen;
+@property (nonatomic, assign) CFAbsoluteTime         lastFullscreenCheck;
+@property (nonatomic, assign) BOOL                   lastFullscreenResult;
 
 - (instancetype)initWithVideoPath:(NSString *)path
                            volume:(float)volume
@@ -186,10 +192,20 @@ static BOOL isFullscreenAppActive(void) {
         _volume         = vol;
         _scaleMode      = mode;
         _displayID      = dID;
-        _paused         = NO;
-        _screenLocked   = NO;
-        _desktopLevel   = kCGDesktopWindowLevel;
+        _paused             = NO;
+        _pausedForBattery   = NO;
+        _pausedForFullscreen = NO;
+        _screenLocked       = NO;
+        _desktopLevel       = kCGDesktopWindowLevel;
         _hasSetStaticWallpaper = NO;
+        _lastFullscreenCheck = 0;
+        _lastFullscreenResult = NO;
+
+        // Load preferences
+        NSUserDefaults *def = [[NSUserDefaults alloc] initWithSuiteName:@"com.elvin.livecanvas"];
+        _batteryMode = [def boolForKey:@"lc_batteryMode"];
+        _autoPauseFullscreen = [def objectForKey:@"lc_autoPauseFullscreen"]
+            ? [def boolForKey:@"lc_autoPauseFullscreen"] : YES;
 
         // Temp file for the static wallpaper frame
         NSString *tmpDir = NSTemporaryDirectory();
@@ -408,6 +424,11 @@ static BOOL isFullscreenAppActive(void) {
         terminateCallback, CFSTR("com.livecanvas.terminate"),
         NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
+    CFNotificationCenterAddObserver(
+        center, (__bridge const void *)(self),
+        settingsChangedCallback, CFSTR("com.livecanvas.settingsChanged"),
+        NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
     // Screen lock / unlock
     CFNotificationCenterAddObserver(
         center, (__bridge const void *)(self),
@@ -459,6 +480,11 @@ static void terminateCallback(CFNotificationCenterRef c, void *obs,
     [(__bridge WallpaperDaemon *)obs shutdown];
 }
 
+static void settingsChangedCallback(CFNotificationCenterRef c, void *obs,
+    CFNotificationName n, const void *o, CFDictionaryRef ui) {
+    [(__bridge WallpaperDaemon *)obs reloadSettings];
+}
+
 static void screenLockedCallback(CFNotificationCenterRef c, void *obs,
     CFNotificationName n, const void *o, CFDictionaryRef ui) {
     [(__bridge WallpaperDaemon *)obs handleScreenLocked];
@@ -482,8 +508,10 @@ static void powerSourceCallback(void *ctx) {
 
 - (void)handleScreenUnlocked {
     _screenLocked = NO;
-    [_player play];
-    [self applyPowerPolicy];
+    if (!_paused && !_pausedForFullscreen) {
+        [_player play];
+        [self applyPowerPolicy];
+    }
 
     _desktopLevel = findDesktopWindowLevel();
     [self setWindowLevel:_desktopLevel];
@@ -498,7 +526,7 @@ static void powerSourceCallback(void *ctx) {
 
 - (void)handleScreenWake:(NSNotification *)note {
     _paused = NO;
-    if (!_screenLocked) {
+    if (!_screenLocked && !_pausedForFullscreen) {
         [_player play];
         [self applyPowerPolicy];
         _desktopLevel = findDesktopWindowLevel();
@@ -509,7 +537,7 @@ static void powerSourceCallback(void *ctx) {
 // ---- watchdog -------------------------------------------------------------
 
 - (void)startWatchdog {
-    _watchdogTimer = [NSTimer scheduledTimerWithTimeInterval:2.0
+    _watchdogTimer = [NSTimer scheduledTimerWithTimeInterval:5.0
                                                      target:self
                                                    selector:@selector(watchdogTick:)
                                                    userInfo:nil
@@ -520,13 +548,22 @@ static void powerSourceCallback(void *ctx) {
 - (void)watchdogTick:(NSTimer *)timer {
     if (_paused || _screenLocked) return;
 
-    if (isFullscreenAppActive()) {
-        if (_player.rate != 0.0) [_player pause];
-    } else {
-        if (_player.rate == 0.0) {
+    // Fullscreen check (only if setting is enabled)
+    if (_autoPauseFullscreen) {
+        BOOL fullscreen = isFullscreenAppActive();
+        if (fullscreen && !_pausedForFullscreen) {
+            _pausedForFullscreen = YES;
+            [_player pause];
+            return;
+        } else if (!fullscreen && _pausedForFullscreen) {
+            _pausedForFullscreen = NO;
             [_player play];
             [self applyPowerPolicy];
         }
+    }
+
+    // Re-assert window level periodically (only when playing)
+    if (_player.rate != 0.0) {
         CGWindowLevel targetLevel = findDesktopWindowLevel();
         if (_window.level != targetLevel) {
             [self setWindowLevel:targetLevel];
@@ -534,10 +571,22 @@ static void powerSourceCallback(void *ctx) {
     }
 }
 
+// ---- settings reload ------------------------------------------------------
+
+- (void)reloadSettings {
+    NSUserDefaults *def = [[NSUserDefaults alloc] initWithSuiteName:@"com.elvin.livecanvas"];
+    _batteryMode = [def boolForKey:@"lc_batteryMode"];
+    _autoPauseFullscreen = [def objectForKey:@"lc_autoPauseFullscreen"]
+        ? [def boolForKey:@"lc_autoPauseFullscreen"] : YES;
+    [self applyPowerPolicy];
+}
+
 // ---- power policy ---------------------------------------------------------
 
 - (void)applyPowerPolicy {
-    _player.rate = isOnBatteryPower() ? 0.5 : 1.0;
+    if (!_paused && !_screenLocked && !_pausedForFullscreen) {
+        _player.rate = 1.0;
+    }
 }
 
 // ---- shutdown -------------------------------------------------------------
